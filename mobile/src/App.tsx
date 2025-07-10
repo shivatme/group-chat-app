@@ -9,49 +9,52 @@ import {
 } from 'react-native';
 import ChatScreen from './screens/ChatScreen';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { SocketProvider } from './context/SocketContext';
 
 export default function App() {
   const [username, setUsername] = useState('');
   const [joined, setJoined] = useState(false);
 
   return (
-    <SafeAreaProvider>
-      <StatusBar
-        translucent
-        backgroundColor="transparent"
-        barStyle="light-content"
-      />
-      <SafeAreaView
-        style={{ flex: 1, backgroundColor: '#0e0e23' }}
-        edges={['top', 'bottom']}
-      >
-        {!joined ? (
-          <View style={styles.container}>
-            <Text style={styles.title}>GAMERSBERG CHAT</Text>
-            <Text style={styles.subtitle}>
-              Enter your username to join the chat lobby
-            </Text>
+    <SocketProvider>
+      <SafeAreaProvider>
+        <StatusBar
+          translucent
+          backgroundColor="transparent"
+          barStyle="light-content"
+        />
+        <SafeAreaView
+          style={{ flex: 1, backgroundColor: '#0e0e23' }}
+          edges={['top', 'bottom']}
+        >
+          {!joined ? (
+            <View style={styles.container}>
+              <Text style={styles.title}>GAMERSBERG CHAT</Text>
+              <Text style={styles.subtitle}>
+                Enter your username to join the chat lobby
+              </Text>
 
-            <TextInput
-              value={username}
-              onChangeText={setUsername}
-              placeholder="Username"
-              placeholderTextColor="#aaa"
-              style={styles.input}
-            />
+              <TextInput
+                value={username}
+                onChangeText={setUsername}
+                placeholder="Username"
+                placeholderTextColor="#aaa"
+                style={styles.input}
+              />
 
-            <TouchableOpacity
-              style={[styles.button, { opacity: username.trim() ? 1 : 0.5 }]}
-              onPress={() => username.trim() && setJoined(true)}
-            >
-              <Text style={styles.buttonText}>Join Chat</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <ChatScreen username={username} onLeave={() => setJoined(false)} />
-        )}
-      </SafeAreaView>
-    </SafeAreaProvider>
+              <TouchableOpacity
+                style={[styles.button, { opacity: username.trim() ? 1 : 0.5 }]}
+                onPress={() => username.trim() && setJoined(true)}
+              >
+                <Text style={styles.buttonText}>Join Chat</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <ChatScreen username={username} onLeave={() => setJoined(false)} />
+          )}
+        </SafeAreaView>
+      </SafeAreaProvider>
+    </SocketProvider>
   );
 }
 

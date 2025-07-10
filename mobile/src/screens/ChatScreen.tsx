@@ -8,12 +8,9 @@ import {
   KeyboardAvoidingView,
   StyleSheet,
 } from 'react-native';
-import io from 'socket.io-client';
-import { ChatMessage } from '../types';
-import { BACKEND_URL } from '../config';
 import Icon from 'react-native-vector-icons/Ionicons';
-
-const socket = io(BACKEND_URL);
+import { ChatMessage } from '../types';
+import { useSocket } from '../context/SocketContext';
 
 export default function ChatScreen({
   username,
@@ -22,6 +19,7 @@ export default function ChatScreen({
   username: string;
   onLeave: () => void;
 }) {
+  const socket = useSocket();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
@@ -31,40 +29,38 @@ export default function ChatScreen({
   useEffect(() => {
     socket.emit('join', username);
 
-    socket.on('history', (history: ChatMessage[]) => {
-      setMessages(history);
-    });
-
-    socket.on('message', (msg: ChatMessage) => {
+    const handleMessage = (msg: ChatMessage) =>
       setMessages(prev => [...prev, msg]);
-    });
-
-    socket.on('system', (text: string) => {
+    const handleSystem = (text: string) => {
       const systemMessage: ChatMessage = {
         username: 'System',
         text,
         timestamp: new Date().toISOString(),
       };
       setMessages(prev => [...prev, systemMessage]);
-    });
+    };
+
+    socket.on('history', setMessages);
+    socket.on('message', handleMessage);
+    socket.on('system', handleSystem);
 
     return () => {
-      socket.disconnect();
+      socket.off('history', setMessages);
+      socket.off('message', handleMessage);
+      socket.off('system', handleSystem);
     };
-  }, [username]);
+  }, [username, socket]);
 
   const sendMessage = () => {
-    if (input.trim() === '') return;
-    socket.emit('message', input);
+    if (!input.trim()) return;
+    socket.emit('message', input.trim());
     setInput('');
   };
 
   const leaveChat = () => {
     socket.emit('leave', username);
-    socket.disconnect();
     onLeave();
   };
-
   function MessageItme({ item, index }: { item: ChatMessage; index: number }) {
     const isOwnMessage = item.username === username;
     const isSystemMessage = item.username === 'System';
@@ -127,7 +123,7 @@ export default function ChatScreen({
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Chat Room</Text>
         <TouchableOpacity onPress={leaveChat}>
-          <Text style={styles.leaveButton}>Leave</Text>
+          <Icon name="exit-outline" size={24} color="#ff4da6" />
         </TouchableOpacity>
       </View>
 
