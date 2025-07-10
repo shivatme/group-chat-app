@@ -24,6 +24,7 @@ export default function ChatScreen({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
 
@@ -44,11 +45,16 @@ export default function ChatScreen({
     socket.on('history', setMessages);
     socket.on('message', handleMessage);
     socket.on('system', handleSystem);
+    socket.on('error-message', (msg: string) => {
+      setError(msg);
+      setTimeout(() => setError(null), 3000);
+    });
 
     return () => {
       socket.off('history', setMessages);
       socket.off('message', handleMessage);
       socket.off('system', handleSystem);
+      socket.off('error-message');
     };
   }, [username, socket]);
 
@@ -59,7 +65,7 @@ export default function ChatScreen({
   };
 
   const leaveChat = () => {
-    socket.emit('leave', username);
+    socket.disconnect();
     onLeave();
   };
   function MessageItme({ item, index }: { item: ChatMessage; index: number }) {
@@ -127,6 +133,11 @@ export default function ChatScreen({
           <Ionicons name="exit-outline" size={24} color="#ff4da6" />
         </TouchableOpacity>
       </View>
+      {error && (
+        <View style={styles.errorBox}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
 
       <FlatList
         ref={flatListRef}
@@ -186,6 +197,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0e0e23',
   },
+  errorBox: {
+    position: 'absolute',
+    zIndex: 10,
+    bottom: 80,
+    left: 0,
+    right: 0,
+    backgroundColor: '#ff4d4d33',
+    padding: 8,
+    marginHorizontal: 12,
+    borderRadius: 6,
+    marginBottom: 4,
+  },
+  errorText: {
+    color: '#ff4d4d',
+    textAlign: 'center',
+    fontSize: 13,
+  },
+
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

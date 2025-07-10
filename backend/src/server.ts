@@ -22,29 +22,47 @@ export function createServer() {
   io.on("connection", (socket) => {
     let username = "";
 
-    socket.on("join", (user: string) => {
-      username = user;
-      console.log(`${username} joined`);
-      socket.emit("history", messages);
-    });
+    try {
+      socket.on("join", (user: string) => {
+        if (typeof user !== "string" || !user.trim()) {
+          socket.emit("error-message", "Invalid username.");
+          return;
+        }
 
-    socket.on("message", (text: string) => {
-      if (!text.trim()) return;
+        username = user.trim();
+        console.log(`${username} joined`);
+        socket.emit("history", messages);
+        io.emit("system", `${username} joined the chat`);
+      });
 
-      const msg: Message = {
-        username,
-        text,
-        timestamp: new Date().toISOString(),
-      };
+      socket.on("message", (text: string) => {
+        if (typeof text !== "string" || !text.trim()) {
+          socket.emit("error-message", "Message must be a non-empty string.");
+          return;
+        }
 
-      messages.push(msg);
-      io.emit("message", msg);
-    });
+        const msg: Message = {
+          username,
+          text: text.trim(),
+          timestamp: new Date().toISOString(),
+        };
 
-    socket.on("disconnect", () => {
-      console.log(`${username} disconnected`);
-      io.emit("system", `${username} left the chat`);
-    });
+        messages.push(msg);
+        if (messages.length > 20) {
+          messages.splice(0, messages.length - 20);
+        }
+        io.emit("message", msg);
+      });
+
+      socket.on("disconnect", () => {
+        if (username) {
+          console.log(`${username} disconnected`);
+          io.emit("system", `${username} left the chat`);
+        }
+      });
+    } catch (err) {
+      socket.emit("error-message", "An unexpected error occurred.");
+    }
   });
 
   return httpServer;
