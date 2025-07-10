@@ -8,7 +8,8 @@ import {
   KeyboardAvoidingView,
   StyleSheet,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import Feather from 'react-native-vector-icons/Feather';
 import { ChatMessage } from '../types';
 import { useSocket } from '../context/SocketContext';
 
@@ -123,7 +124,7 @@ export default function ChatScreen({
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Chat Room</Text>
         <TouchableOpacity onPress={leaveChat}>
-          <Icon name="exit-outline" size={24} color="#ff4da6" />
+          <Ionicons name="exit-outline" size={24} color="#ff4da6" />
         </TouchableOpacity>
       </View>
 
@@ -157,7 +158,7 @@ export default function ChatScreen({
           onPress={() => flatListRef.current?.scrollToEnd({ animated: true })}
           activeOpacity={0.8}
         >
-          <Icon name="chevron-down-circle" size={32} color="#ffffff" />
+          <Feather name="chevrons-down" size={22} color="#f5f5f5" />
         </TouchableOpacity>
       )}
 
