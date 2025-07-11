@@ -53,6 +53,13 @@ export function createServer() {
         }
         io.emit("message", msg);
       });
+      socket.on("typing", (username) => {
+        socket.broadcast.emit("typing", username);
+      });
+
+      socket.on("stopTyping", (username) => {
+        socket.broadcast.emit("stopTyping", username);
+      });
 
       socket.on("disconnect", () => {
         if (username) {

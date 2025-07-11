@@ -25,38 +25,22 @@ export default function ChatScreen({
   const [input, setInput] = useState('');
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
 
   const flatListRef = useRef<FlatList>(null);
 
-  useEffect(() => {
-    socket.emit('join', username);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    const handleMessage = (msg: ChatMessage) =>
-      setMessages(prev => [...prev, msg]);
-    const handleSystem = (text: string) => {
-      const systemMessage: ChatMessage = {
-        username: 'System',
-        text,
-        timestamp: new Date().toISOString(),
-      };
-      setMessages(prev => [...prev, systemMessage]);
-    };
+  const handleTyping = (text: string) => {
+    setInput(text);
 
-    socket.on('history', setMessages);
-    socket.on('message', handleMessage);
-    socket.on('system', handleSystem);
-    socket.on('error-message', (msg: string) => {
-      setError(msg);
-      setTimeout(() => setError(null), 3000);
-    });
+    socket.emit('typing', username);
 
-    return () => {
-      socket.off('history', setMessages);
-      socket.off('message', handleMessage);
-      socket.off('system', handleSystem);
-      socket.off('error-message');
-    };
-  }, [username, socket]);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      socket.emit('stopTyping', username);
+    }, 1500);
+  };
 
   const sendMessage = () => {
     if (!input.trim()) return;
@@ -68,6 +52,7 @@ export default function ChatScreen({
     socket.disconnect();
     onLeave();
   };
+
   function MessageItme({ item, index }: { item: ChatMessage; index: number }) {
     const isOwnMessage = item.username === username;
     const isSystemMessage = item.username === 'System';
@@ -122,6 +107,46 @@ export default function ChatScreen({
     );
   }
 
+  useEffect(() => {
+    socket.emit('join', username);
+
+    const handleMessage = (msg: ChatMessage) =>
+      setMessages(prev => [...prev, msg]);
+    const handleSystem = (text: string) => {
+      const systemMessage: ChatMessage = {
+        username: 'System',
+        text,
+        timestamp: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, systemMessage]);
+    };
+
+    socket.on('history', setMessages);
+    socket.on('message', handleMessage);
+    socket.on('system', handleSystem);
+    socket.on('error-message', (msg: string) => {
+      setError(msg);
+      setTimeout(() => setError(null), 3000);
+    });
+    socket.on('typing', (user: string) => {
+      if (user !== username) {
+        setTypingUsers(prev => (prev.includes(user) ? prev : [...prev, user]));
+      }
+    });
+
+    socket.on('stopTyping', (user: string) => {
+      setTypingUsers(prev => prev.filter(u => u !== user));
+    });
+    return () => {
+      socket.off('history', setMessages);
+      socket.off('message', handleMessage);
+      socket.off('system', handleSystem);
+      socket.off('error-message');
+      socket.off('typing');
+      socket.off('stopTyping');
+    };
+  }, [username, socket]);
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -172,12 +197,19 @@ export default function ChatScreen({
           <Feather name="chevrons-down" size={22} color="#f5f5f5" />
         </TouchableOpacity>
       )}
+      {typingUsers.length > 0 && (
+        <View style={{ paddingHorizontal: 16, paddingBottom: 4 }}>
+          <Text style={{ color: '#aaa', fontWeight: 'bold', fontSize: 12 }}>
+            {typingUsers.join(', ')} typing...
+          </Text>
+        </View>
+      )}
 
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
           value={input}
-          onChangeText={setInput}
+          onChangeText={handleTyping}
           placeholder="Type a message"
           placeholderTextColor="#aaa"
         />
