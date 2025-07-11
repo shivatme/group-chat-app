@@ -108,6 +108,8 @@ export default function ChatScreen({
   }
 
   useEffect(() => {
+    if (!socket.connected) return;
+
     socket.emit('join', username);
 
     const handleMessage = (msg: ChatMessage) =>
